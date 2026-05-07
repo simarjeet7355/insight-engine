@@ -164,6 +164,81 @@ const Index = () => {
     }
   };
 
+  const renderWidget = (w: Widget) => {
+    if (w.kind === "scatter") {
+      const pts = filtered.slice(0, 500).map(r => ({ x: Number(r[w.x]), y: Number(r[w.y]) })).filter(p => !isNaN(p.x) && !isNaN(p.y));
+      return (
+        <ResponsiveContainer width="100%" height={280}>
+          <ScatterChart>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis dataKey="x" name={w.x} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={fmt} />
+            <YAxis dataKey="y" name={w.y} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={fmt} />
+            <Tooltip cursor={{ strokeDasharray: "3 3" }} contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+            <Scatter data={pts} fill={COLORS[1]} />
+          </ScatterChart>
+        </ResponsiveContainer>
+      );
+    }
+    const map = new Map<string, number>();
+    filtered.forEach(r => {
+      const key = String(r[w.x] ?? "—");
+      map.set(key, (map.get(key) || 0) + (Number(r[w.y]) || 0));
+    });
+    const d = Array.from(map.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 20);
+    const tip = <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />;
+    if (w.kind === "pie") return (
+      <ResponsiveContainer width="100%" height={280}>
+        <PieChart>
+          <Pie data={d} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={(e) => e.name}>
+            {d.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+          </Pie>
+          {tip}
+        </PieChart>
+      </ResponsiveContainer>
+    );
+    if (w.kind === "line") return (
+      <ResponsiveContainer width="100%" height={280}>
+        <LineChart data={d}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} angle={-25} textAnchor="end" height={60} />
+          <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={fmt} />
+          {tip}
+          <Line type="monotone" dataKey="value" stroke={COLORS[2]} strokeWidth={2} dot={{ r: 3 }} />
+        </LineChart>
+      </ResponsiveContainer>
+    );
+    if (w.kind === "area") return (
+      <ResponsiveContainer width="100%" height={280}>
+        <AreaChart data={d}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} angle={-25} textAnchor="end" height={60} />
+          <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={fmt} />
+          {tip}
+          <Area type="monotone" dataKey="value" stroke={COLORS[3]} fill={COLORS[3]} fillOpacity={0.3} />
+        </AreaChart>
+      </ResponsiveContainer>
+    );
+    return (
+      <ResponsiveContainer width="100%" height={280}>
+        <BarChart data={d}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} angle={-25} textAnchor="end" height={60} />
+          <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={fmt} />
+          {tip}
+          <Bar dataKey="value" fill={COLORS[0]} radius={[6, 6, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  };
+
+  const addWidget = () => {
+    const x = categoryCols[0] || columns[0];
+    const y = numericCols[0] || columns[1] || columns[0];
+    setWidgets(ws => [...ws, { id: `w${Date.now()}`, kind: "bar", x, y }]);
+  };
+  const updateWidget = (id: string, patch: Partial<Widget>) => setWidgets(ws => ws.map(w => w.id === id ? { ...w, ...patch } : w));
+  const removeWidget = (id: string) => setWidgets(ws => ws.filter(w => w.id !== id));
+
   if (!data.length) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 flex items-center justify-center p-6">
