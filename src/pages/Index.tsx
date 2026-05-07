@@ -434,6 +434,63 @@ const Index = () => {
           )}
         </div>
 
+        {/* Dashboard Generator */}
+        <Card>
+          <CardHeader className="pb-3 flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base flex items-center gap-2"><LayoutDashboard className="w-4 h-4" /> Dashboard Generator</CardTitle>
+            <Button size="sm" onClick={addWidget}><Plus className="w-4 h-4 mr-1" />Add widget</Button>
+          </CardHeader>
+          <CardContent>
+            {widgets.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No widgets yet. Click "Add widget" to build your dashboard.</p>
+            ) : (
+              <div className="grid lg:grid-cols-2 gap-4">
+                {widgets.map(w => (
+                  <Card key={w.id} className="border-dashed">
+                    <CardHeader className="pb-2">
+                      <div className="flex flex-wrap items-end gap-2">
+                        <div className="min-w-[110px]">
+                          <label className="text-xs text-muted-foreground mb-1 block">Type</label>
+                          <Select value={w.kind} onValueChange={(v: ChartKind) => updateWidget(w.id, { kind: v })}>
+                            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="bar">Bar</SelectItem>
+                              <SelectItem value="line">Line</SelectItem>
+                              <SelectItem value="area">Area</SelectItem>
+                              <SelectItem value="pie">Pie</SelectItem>
+                              <SelectItem value="scatter">Scatter</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="min-w-[130px] flex-1">
+                          <label className="text-xs text-muted-foreground mb-1 block">{w.kind === "scatter" ? "X (numeric)" : "Group by"}</label>
+                          <Select value={w.x} onValueChange={v => updateWidget(w.id, { x: v })}>
+                            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {(w.kind === "scatter" ? numericCols : columns).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="min-w-[130px] flex-1">
+                          <label className="text-xs text-muted-foreground mb-1 block">{w.kind === "scatter" ? "Y (numeric)" : "Measure"}</label>
+                          <Select value={w.y} onValueChange={v => updateWidget(w.id, { y: v })}>
+                            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {numericCols.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeWidget(w.id)}><Trash2 className="w-4 h-4" /></Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>{renderWidget(w)}</CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Data table */}
         <Card>
           <CardHeader><CardTitle className="text-base">Data ({filtered.length.toLocaleString()} rows)</CardTitle></CardHeader>
