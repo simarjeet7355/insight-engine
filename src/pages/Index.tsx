@@ -3,8 +3,9 @@ import Papa from "papaparse";
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  ScatterChart, Scatter,
+  ScatterChart, Scatter, AreaChart, Area,
 } from "recharts";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,10 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Upload, BarChart3, ArrowUpDown, X, Database, TrendingUp } from "lucide-react";
+import { Upload, BarChart3, ArrowUpDown, X, Database, TrendingUp, Plus, LayoutDashboard, Trash2 } from "lucide-react";
 
 type Row = Record<string, any>;
 type ColType = "number" | "date" | "category";
+type ChartKind = "bar" | "line" | "area" | "pie" | "scatter";
+type Widget = { id: string; kind: ChartKind; x: string; y: string };
 
 const COLORS = ["hsl(221 83% 53%)", "hsl(142 71% 45%)", "hsl(262 83% 58%)", "hsl(346 77% 50%)", "hsl(38 92% 50%)", "hsl(199 89% 48%)", "hsl(280 65% 60%)", "hsl(173 58% 39%)"];
 
@@ -45,6 +48,7 @@ const Index = () => {
   const [chartXCol, setChartXCol] = useState<string>("");
   const [chartYCol, setChartYCol] = useState<string>("");
   const [groupCol, setGroupCol] = useState<string>("");
+  const [widgets, setWidgets] = useState<Widget[]>([]);
 
   const handleFile = useCallback((file: File) => {
     setFileName(file.name);
@@ -66,6 +70,15 @@ const Index = () => {
           setChartYCol(firstNum);
           const otherCat = types.find(x => (x.t === "category") && x.c !== firstCat)?.c || "";
           setGroupCol(otherCat);
+          // Auto-generate dashboard widgets
+          const nums = types.filter(x => x.t === "number").map(x => x.c);
+          const cats = types.filter(x => x.t !== "number").map(x => x.c);
+          const auto: Widget[] = [];
+          if (cats[0] && nums[0]) auto.push({ id: "w1", kind: "bar", x: cats[0], y: nums[0] });
+          if (cats[0] && nums[1]) auto.push({ id: "w2", kind: "line", x: cats[0], y: nums[1] });
+          if (cats[1] && nums[0]) auto.push({ id: "w3", kind: "pie", x: cats[1], y: nums[0] });
+          if (nums[0] && nums[1]) auto.push({ id: "w4", kind: "scatter", x: nums[0], y: nums[1] });
+          setWidgets(auto);
         }
       },
     });
@@ -151,6 +164,81 @@ const Index = () => {
     }
   };
 
+  const renderWidget = (w: Widget) => {
+    if (w.kind === "scatter") {
+      const pts = filtered.slice(0, 500).map(r => ({ x: Number(r[w.x]), y: Number(r[w.y]) })).filter(p => !isNaN(p.x) && !isNaN(p.y));
+      return (
+        <ResponsiveContainer width="100%" height={280}>
+          <ScatterChart>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis dataKey="x" name={w.x} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={fmt} />
+            <YAxis dataKey="y" name={w.y} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={fmt} />
+            <Tooltip cursor={{ strokeDasharray: "3 3" }} contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+            <Scatter data={pts} fill={COLORS[1]} />
+          </ScatterChart>
+        </ResponsiveContainer>
+      );
+    }
+    const map = new Map<string, number>();
+    filtered.forEach(r => {
+      const key = String(r[w.x] ?? "—");
+      map.set(key, (map.get(key) || 0) + (Number(r[w.y]) || 0));
+    });
+    const d = Array.from(map.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 20);
+    const tip = <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />;
+    if (w.kind === "pie") return (
+      <ResponsiveContainer width="100%" height={280}>
+        <PieChart>
+          <Pie data={d} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={(e) => e.name}>
+            {d.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+          </Pie>
+          {tip}
+        </PieChart>
+      </ResponsiveContainer>
+    );
+    if (w.kind === "line") return (
+      <ResponsiveContainer width="100%" height={280}>
+        <LineChart data={d}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} angle={-25} textAnchor="end" height={60} />
+          <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={fmt} />
+          {tip}
+          <Line type="monotone" dataKey="value" stroke={COLORS[2]} strokeWidth={2} dot={{ r: 3 }} />
+        </LineChart>
+      </ResponsiveContainer>
+    );
+    if (w.kind === "area") return (
+      <ResponsiveContainer width="100%" height={280}>
+        <AreaChart data={d}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} angle={-25} textAnchor="end" height={60} />
+          <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={fmt} />
+          {tip}
+          <Area type="monotone" dataKey="value" stroke={COLORS[3]} fill={COLORS[3]} fillOpacity={0.3} />
+        </AreaChart>
+      </ResponsiveContainer>
+    );
+    return (
+      <ResponsiveContainer width="100%" height={280}>
+        <BarChart data={d}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} angle={-25} textAnchor="end" height={60} />
+          <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={fmt} />
+          {tip}
+          <Bar dataKey="value" fill={COLORS[0]} radius={[6, 6, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  };
+
+  const addWidget = () => {
+    const x = categoryCols[0] || columns[0];
+    const y = numericCols[0] || columns[1] || columns[0];
+    setWidgets(ws => [...ws, { id: `w${Date.now()}`, kind: "bar", x, y }]);
+  };
+  const updateWidget = (id: string, patch: Partial<Widget>) => setWidgets(ws => ws.map(w => w.id === id ? { ...w, ...patch } : w));
+  const removeWidget = (id: string) => setWidgets(ws => ws.filter(w => w.id !== id));
+
   if (!data.length) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 flex items-center justify-center p-6">
@@ -197,6 +285,7 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <label>
               <Button variant="outline" size="sm" asChild><span className="cursor-pointer"><Upload className="w-4 h-4 mr-2" />New file</span></Button>
               <input type="file" accept=".csv" className="hidden" onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
@@ -344,6 +433,63 @@ const Index = () => {
             </Card>
           )}
         </div>
+
+        {/* Dashboard Generator */}
+        <Card>
+          <CardHeader className="pb-3 flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base flex items-center gap-2"><LayoutDashboard className="w-4 h-4" /> Dashboard Generator</CardTitle>
+            <Button size="sm" onClick={addWidget}><Plus className="w-4 h-4 mr-1" />Add widget</Button>
+          </CardHeader>
+          <CardContent>
+            {widgets.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No widgets yet. Click "Add widget" to build your dashboard.</p>
+            ) : (
+              <div className="grid lg:grid-cols-2 gap-4">
+                {widgets.map(w => (
+                  <Card key={w.id} className="border-dashed">
+                    <CardHeader className="pb-2">
+                      <div className="flex flex-wrap items-end gap-2">
+                        <div className="min-w-[110px]">
+                          <label className="text-xs text-muted-foreground mb-1 block">Type</label>
+                          <Select value={w.kind} onValueChange={(v: ChartKind) => updateWidget(w.id, { kind: v })}>
+                            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="bar">Bar</SelectItem>
+                              <SelectItem value="line">Line</SelectItem>
+                              <SelectItem value="area">Area</SelectItem>
+                              <SelectItem value="pie">Pie</SelectItem>
+                              <SelectItem value="scatter">Scatter</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="min-w-[130px] flex-1">
+                          <label className="text-xs text-muted-foreground mb-1 block">{w.kind === "scatter" ? "X (numeric)" : "Group by"}</label>
+                          <Select value={w.x} onValueChange={v => updateWidget(w.id, { x: v })}>
+                            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {(w.kind === "scatter" ? numericCols : columns).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="min-w-[130px] flex-1">
+                          <label className="text-xs text-muted-foreground mb-1 block">{w.kind === "scatter" ? "Y (numeric)" : "Measure"}</label>
+                          <Select value={w.y} onValueChange={v => updateWidget(w.id, { y: v })}>
+                            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {numericCols.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeWidget(w.id)}><Trash2 className="w-4 h-4" /></Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>{renderWidget(w)}</CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Data table */}
         <Card>
