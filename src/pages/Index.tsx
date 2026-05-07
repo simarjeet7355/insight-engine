@@ -13,10 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Upload, BarChart3, ArrowUpDown, X, Database, TrendingUp } from "lucide-react";
+import { Upload, BarChart3, ArrowUpDown, X, Database, TrendingUp, Plus, LayoutDashboard, Trash2 } from "lucide-react";
 
 type Row = Record<string, any>;
 type ColType = "number" | "date" | "category";
+type ChartKind = "bar" | "line" | "area" | "pie" | "scatter";
+type Widget = { id: string; kind: ChartKind; x: string; y: string };
 
 const COLORS = ["hsl(221 83% 53%)", "hsl(142 71% 45%)", "hsl(262 83% 58%)", "hsl(346 77% 50%)", "hsl(38 92% 50%)", "hsl(199 89% 48%)", "hsl(280 65% 60%)", "hsl(173 58% 39%)"];
 
