@@ -48,6 +48,7 @@ const Index = () => {
   const [chartXCol, setChartXCol] = useState<string>("");
   const [chartYCol, setChartYCol] = useState<string>("");
   const [groupCol, setGroupCol] = useState<string>("");
+  const [widgets, setWidgets] = useState<Widget[]>([]);
 
   const handleFile = useCallback((file: File) => {
     setFileName(file.name);
