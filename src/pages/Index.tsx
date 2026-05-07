@@ -70,6 +70,15 @@ const Index = () => {
           setChartYCol(firstNum);
           const otherCat = types.find(x => (x.t === "category") && x.c !== firstCat)?.c || "";
           setGroupCol(otherCat);
+          // Auto-generate dashboard widgets
+          const nums = types.filter(x => x.t === "number").map(x => x.c);
+          const cats = types.filter(x => x.t !== "number").map(x => x.c);
+          const auto: Widget[] = [];
+          if (cats[0] && nums[0]) auto.push({ id: "w1", kind: "bar", x: cats[0], y: nums[0] });
+          if (cats[0] && nums[1]) auto.push({ id: "w2", kind: "line", x: cats[0], y: nums[1] });
+          if (cats[1] && nums[0]) auto.push({ id: "w3", kind: "pie", x: cats[1], y: nums[0] });
+          if (nums[0] && nums[1]) auto.push({ id: "w4", kind: "scatter", x: nums[0], y: nums[1] });
+          setWidgets(auto);
         }
       },
     });
