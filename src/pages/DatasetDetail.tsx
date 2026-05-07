@@ -33,7 +33,7 @@ export default function DatasetDetail() {
       setDs(data);
       setLoading(false);
       if (data) {
-        const cols: ColumnMeta[] = data.columns;
+        const cols = data.columns as unknown as ColumnMeta[];
         const cats = cols.filter((c) => c.type === "category");
         const nums = cols.filter((c) => c.type === "number");
         const dates = cols.filter((c) => c.type === "date");
@@ -47,8 +47,8 @@ export default function DatasetDetail() {
     });
   }, [id]);
 
-  const cols: ColumnMeta[] = ds?.columns ?? [];
-  const rows: Row[] = ds?.rows ?? [];
+  const cols: ColumnMeta[] = (ds?.columns as unknown as ColumnMeta[]) ?? [];
+  const rows: Row[] = (ds?.rows as unknown as Row[]) ?? [];
 
   const filtered = useMemo(() => {
     return rows.filter((r) =>
