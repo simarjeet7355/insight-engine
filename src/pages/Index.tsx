@@ -198,6 +198,7 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <label>
               <Button variant="outline" size="sm" asChild><span className="cursor-pointer"><Upload className="w-4 h-4 mr-2" />New file</span></Button>
               <input type="file" accept=".csv" className="hidden" onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
